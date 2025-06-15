@@ -15,10 +15,10 @@ plt.rcParams['font.family'] = 'Noto Sans TC'
 # 強制使用 Render 上的 Secret 金鑰認證 BigQuery
 SERVICE_ACCOUNT_FILE = "/etc/secrets/renderBigqueryKey.json"
 credentials = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE)
-client = bigquery.Client(credentials=credentials)
+client = bigquery.Client(credentials=credentials, project="dengue-health-vanessav2")
 
 # 取得 URL 參數
-query_params = st.experimental_get_query_params()
+query_params = st.query_params
 location = query_params.get("location", [None])[0]
 month = query_params.get("month", [None])[0]
 
