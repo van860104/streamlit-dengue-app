@@ -61,4 +61,5 @@ ax.set_ylabel("病例數")
 ax.set_title(f"{location} 登革熱趨勢")
 plt.xticks(rotation=45)
 
+
 st.pyplot(fig)
