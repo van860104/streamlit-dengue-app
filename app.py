@@ -1,44 +1,79 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
+from google.cloud import bigquery
+from google.oauth2 import service\_account
+import matplotlib.font\_manager as fm
+import urllib.parse
 import os
 
-# 設定中文字型避免亂碼
-font_path = os.path.join("fonts", "NotoSansTC-VariableFont_wght.ttf")
-if os.path.exists(font_path):
-    fm.fontManager.addfont(font_path)
-    plt.rcParams["font.family"] = "Noto Sans TC"
+# 設定字型路徑（Render 上會自動從 fonts 資料夾載入）
 
-# 假設已有本地 CSV 資料
-DATA_PATH = os.path.join("..", "data", "monthly_cases.csv")
+font\_path = "fonts/NotoSansTC-VariableFont\_wght.ttf"
+fm.fontManager.addfont(font\_path)
+plt.rcParams\['font.family'] = 'Noto Sans TC'
 
-@st.cache_data
-def load_data():
-    df = pd.read_csv(DATA_PATH)
-    return df
+# BigQuery 客戶端初始化（Render 環境建議設 GOOGLE\_APPLICATION\_CREDENTIALS）
 
-df = load_data()
-
-# Streamlit 視覺化介面
-st.title("登革熱趨勢圖表")
-
-# 側邊欄選擇區域與月份
-cities = sorted(df["縣市"].dropna().unique())
-months = sorted(df["月份"].dropna().unique())
-
-selected_city = st.sidebar.selectbox("選擇縣市", cities)
-selected_month = st.sidebar.selectbox("選擇月份", months)
-
-# 過濾資料
-filtered_df = df[(df["縣市"] == selected_city) & (df["月份"] == selected_month)]
-
-if not filtered_df.empty:
-    fig, ax = plt.subplots()
-    ax.plot(filtered_df["日期"], filtered_df["確定病例數"], marker="o")
-    ax.set_title(f"{selected_month} 月 {selected_city} 登革熱趨勢")
-    ax.set_xlabel("日期")
-    ax.set_ylabel("確定病例數")
-    st.pyplot(fig)
+SERVICE\_ACCOUNT\_FILE = "/etc/secrets/renderBigqueryKey.json"
+if os.getenv("GOOGLE\_APPLICATION\_CREDENTIALS"):
+client = bigquery.Client()
 else:
-    st.warning("查無資料，請重新選擇。")
+credentials = service\_account.Credentials.from\_service\_account\_file(SERVICE\_ACCOUNT\_FILE)
+client = bigquery.Client(credentials=credentials)
+
+# 取得 URL 參數
+
+query\_params = st.experimental\_get\_query\_params()
+location = query\_params.get("location", \[None])\[0]
+month = query\_params.get("month", \[None])\[0]
+
+# 驗證參數有效性
+
+if not location or not month:
+st.error("請提供完整參數（地區與月份），例如 ?location=台南\&month=5")
+st.stop()
+
+# 查詢資料
+
+sql = f'''
+SELECT 發病日, COUNT(\*) as 病例數
+FROM `dengue-health-vanessav2.health_data.dengue_cases`
+WHERE 居住縣市 LIKE '%{location}%'
+AND EXTRACT(MONTH FROM 發病日) = {month}
+GROUP BY 發病日
+ORDER BY 發病日
+'''
+
+@st.cache\_data
+def load\_data():
+df = client.query(sql).to\_dataframe()
+return df
+
+# 載入資料
+
+try:
+df = load\_data()
+except Exception as e:
+st.error(f"查詢資料失敗：{e}")
+st.stop()
+
+if df.empty:
+st.warning("查無資料，請確認地區與月份是否正確。")
+st.stop()
+
+# 顯示標題
+
+st.title(f"{location} 地區 {month} 月登革熱病例趨勢圖")
+
+# 日期轉換與繪圖
+
+df\['發病日'] = pd.to\_datetime(df\['發病日'])
+fig, ax = plt.subplots()
+ax.plot(df\['發病日'], df\['病例數'], marker='o')
+ax.set\_xlabel("發病日")
+ax.set\_ylabel("病例數")
+ax.set\_title(f"{location} 登革熱趨勢")
+plt.xticks(rotation=45)
+
+st.pyplot(fig)
