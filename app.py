@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -20,11 +19,12 @@ client = bigquery.Client(credentials=credentials, project="dengue-health-vanessa
 # 取得 URL 參數
 query_params = st.query_params
 location = query_params.get("location", [None])[0]
+year = query_params.get("year", [None])[0]
 month = query_params.get("month", [None])[0]
 
 # 驗證參數有效性
-if not location or not month:
-    st.error("請提供完整參數（地區與月份），例如 ?location=台南&month=5")
+if not location or not month or not year:
+    st.error("請提供完整參數，例如 ?location=台南&year=2024&month=5")
     st.stop()
 
 # 查詢資料（已更新為英文欄位名的新資料表）
@@ -33,6 +33,7 @@ sql = """
     FROM `dengue-health-vanessav2.health_data.dengue_cases_sreamlit`
     WHERE residence_city LIKE @location
       AND EXTRACT(MONTH FROM onset_date) = @month
+      AND EXTRACT(YEAR FROM onset_date) = @year
     GROUP BY onset_date
     ORDER BY onset_date
 """
@@ -41,6 +42,7 @@ job_config = bigquery.QueryJobConfig(
     query_parameters=[
         bigquery.ScalarQueryParameter("location", "STRING", f"%{location}%"),
         bigquery.ScalarQueryParameter("month", "INT64", int(month)),
+        bigquery.ScalarQueryParameter("year", "INT64", int(year)),
     ]
 )
 
@@ -51,11 +53,11 @@ except Exception as e:
     st.stop()
 
 if df.empty:
-    st.warning("查無資料，請確認地區與月份是否正確。")
+    st.warning("查無資料，請確認地區與年月是否正確。")
     st.stop()
 
 # 顯示標題
-st.title(f"{location} 地區 {month} 月登革熱病例趨勢圖")
+st.title(f"{location} 地區 {year} 年 {month} 月登革熱病例趨勢圖")
 
 # 繪製圖表
 df['onset_date'] = pd.to_datetime(df['onset_date'])
