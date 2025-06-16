@@ -1,5 +1,6 @@
-streamlit
-pandas
-matplotlib
 google-cloud-bigquery
 google-auth
+pandas
+matplotlib
+streamlit
+db-dtypes
