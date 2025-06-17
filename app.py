@@ -19,8 +19,8 @@ client = bigquery.Client(credentials=credentials, project="dengue-health-vanessa
 # 取得 URL 參數
 query_params = st.query_params
 location = query_params.get("location", [None])[0]
-year = query_params.get("year", [None])[0]
 month = query_params.get("month", [None])[0]
+year = query_params.get("year", [None])[0]
 
 # 驗證參數有效性
 if not location or not month or not year:
@@ -40,7 +40,7 @@ sql = """
 
 job_config = bigquery.QueryJobConfig(
     query_parameters=[
-        bigquery.ScalarQueryParameter("location", "STRING", f"%{location}%"),
+        bigquery.ScalarQueryParameter("location", "STRING", f"{location}%"),
         bigquery.ScalarQueryParameter("month", "INT64", int(month)),
         bigquery.ScalarQueryParameter("year", "INT64", int(year)),
     ]
@@ -53,7 +53,7 @@ except Exception as e:
     st.stop()
 
 if df.empty:
-    st.warning("查無資料，請確認地區與年月是否正確。")
+    st.warning("查無資料，請確認地區、年份與月份是否正確。")
     st.stop()
 
 # 顯示標題
