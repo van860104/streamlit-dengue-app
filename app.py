@@ -31,7 +31,7 @@ if not location or not month or not year:
 sql = """
     SELECT onset_date, COUNT(*) as case_count
     FROM `dengue-health-vanessav2.health_data.dengue_cases_sreamlit`
-    WHERE residence_city LIKE CONCAT(@location, '%')
+    WHERE residence_city = @location
       AND EXTRACT(MONTH FROM onset_date) = @month
       AND EXTRACT(YEAR FROM onset_date) = @year
     GROUP BY onset_date
