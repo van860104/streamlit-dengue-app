@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -22,25 +23,30 @@ location = query_params.get("location", [None])[0]
 month = query_params.get("month", [None])[0]
 year = query_params.get("year", [None])[0]
 
+# 顯示目前參數（Debug）
+st.markdown(f"**🔍 目前參數：** 地區 = `{location}`，年份 = `{year}`，月份 = `{month}`")
+
 # 驗證參數有效性
 if not location or not month or not year:
-    st.error("請提供完整參數，例如 ?location=台南&year=2024&month=5")
+    st.error("請提供完整參數，例如 https://streamlit-dengue-app.onrender.com?location=台南市&year=2024&month=5")
     st.stop()
 
 # 查詢資料（已更新為英文欄位名的新資料表）
 sql = """
     SELECT onset_date, COUNT(*) as case_count
     FROM `dengue-health-vanessav2.health_data.dengue_cases_sreamlit`
-    WHERE residence_city = @location
+    WHERE residence_city LIKE CONCAT(@location, '%')
       AND EXTRACT(MONTH FROM onset_date) = @month
       AND EXTRACT(YEAR FROM onset_date) = @year
     GROUP BY onset_date
     ORDER BY onset_date
 """
 
+st.code(sql, language="sql")  # 顯示實際查詢 SQL（Debug）
+
 job_config = bigquery.QueryJobConfig(
     query_parameters=[
-        bigquery.ScalarQueryParameter("location", "STRING", f"{location}%"),
+        bigquery.ScalarQueryParameter("location", "STRING", location),
         bigquery.ScalarQueryParameter("month", "INT64", int(month)),
         bigquery.ScalarQueryParameter("year", "INT64", int(year)),
     ]
